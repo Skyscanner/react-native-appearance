@@ -32,15 +32,14 @@ public class RNCAppearanceModule extends ReactContextBaseJavaModule implements L
         super(reactContext);
         // Only Android 10+ supports dark mode
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-            final ReactApplicationContext ctx = reactContext;
             mBroadcastReceiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    Configuration newConfig = intent.getParcelableExtra("newConfig");
-                    sendEvent(ctx, "appearanceChanged", getPreferences());
+                    updateAndSendAppearancePreferences();
                 }
             };
-            ctx.addLifecycleEventListener(this);
+            reactContext.addLifecycleEventListener(this);
+            reactContext.registerReceiver(mBroadcastReceiver, new IntentFilter("android.intent.action.CONFIGURATION_CHANGED"));
         }
     }
 
@@ -116,14 +115,6 @@ public class RNCAppearanceModule extends ReactContextBaseJavaModule implements L
 
     @Override
     public void onHostResume() {
-        final Activity activity = getCurrentActivity();
-
-        if (activity == null) {
-            FLog.e(ReactConstants.TAG, "no activity to register receiver");
-            return;
-        }
-        activity.registerReceiver(mBroadcastReceiver, new IntentFilter("onConfigurationChanged"));
-
         // Send updated preferences to JS when the app is resumed, because we don't receive updates
         // when backgrounded
         updateAndSendAppearancePreferences();
